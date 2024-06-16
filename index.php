@@ -5,7 +5,7 @@ $taskList = file_exists($taskFile) ? json_decode(file_get_contents($taskFile), t
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['newTask'])) {
-        $taskList[] = ['description' => $_POST['newTask'], 'isComplete' => false];
+        $taskList[] = ['description' => $_POST['newTask'], 'isComplete' => false, 'timestamp' => date('Y-m-d H:i:s')];
         file_put_contents($taskFile, json_encode($taskList));
     } elseif (isset($_POST['markComplete'])) {
         $taskList[$_POST['markComplete']]['isComplete'] = true;
@@ -28,10 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: #f4f4f4;
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+        }
+        .navbar {
+            background-color: #007bff;
+            padding: 10px;
+            color: white;
+            text-align: center;
+            font-size: 18px;
         }
         .task-container {
             background: #fff;
@@ -39,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             width: 400px;
+            margin: 20px auto;
         }
         h1 {
             margin: 0 0 20px;
@@ -110,11 +114,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .task-buttons button.delete:hover {
             background: #c82333;
         }
+        .timestamp {
+            font-size: 12px;
+            color: #666;
+            display: block;
+            margin-top: 5px;
+        }
+        .task-desc {
+            display: flex;
+            flex-direction: column;
+        }
     </style>
 </head>
 <body>
+    <div class="navbar">
+        Task Manager
+    </div>
     <div class="task-container">
-        <h1>Task Manager</h1>
+        <h1>Task List</h1>
         <form method="post">
             <input type="text" name="newTask" placeholder="New task..." required>
             <input type="submit" value="Add Task">
@@ -122,11 +139,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <ul>
             <?php foreach ($taskList as $index => $task): ?>
                 <li>
-                    <?php if ($task['isComplete']): ?>
-                        <s><?= htmlspecialchars($task['description']) ?></s>
-                    <?php else: ?>
-                        <?= htmlspecialchars($task['description']) ?>
-                    <?php endif; ?>
+                    <div class="task-desc">
+                        <?php if ($task['isComplete']): ?>
+                            <s><?= htmlspecialchars($task['description']) ?></s>
+                        <?php else: ?>
+                            <?= htmlspecialchars($task['description']) ?>
+                        <?php endif; ?>
+                        <span class="timestamp"><?= htmlspecialchars($task['timestamp']) ?></span>
+                    </div>
                     <div class="task-buttons">
                         <form method="post">
                             <button type="submit" name="markComplete" value="<?= $index ?>" class="complete">Complete</button>

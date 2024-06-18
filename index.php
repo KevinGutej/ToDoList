@@ -13,8 +13,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (isset($_POST['deleteTask'])) {
         array_splice($taskList, $_POST['deleteTask'], 1);
         file_put_contents($taskFile, json_encode($taskList));
+    } elseif (isset($_POST['editTask'])) {
+        $taskList[$_POST['editTask']]['description'] = $_POST['updatedTask'];
+        file_put_contents($taskFile, json_encode($taskList));
     }
 }
+
+$remainingTasks = count(array_filter($taskList, fn($task) => !$task['isComplete']));
 ?>
 
 <!DOCTYPE html>
@@ -114,6 +119,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .task-buttons button.delete:hover {
             background: #c82333;
         }
+        .task-buttons button.edit {
+            background: #ffc107;
+            color: #fff;
+        }
+        .task-buttons button.edit:hover {
+            background: #e0a800;
+        }
         .timestamp {
             font-size: 12px;
             color: #666;
@@ -123,6 +135,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .task-desc {
             display: flex;
             flex-direction: column;
+        }
+        .remaining-tasks {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333;
         }
     </style>
 </head>
@@ -152,10 +170,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <button type="submit" name="markComplete" value="<?= $index ?>" class="complete">Complete</button>
                             <button type="submit" name="deleteTask" value="<?= $index ?>" class="delete">Delete</button>
                         </form>
+                        <form method="post" style="display: inline;">
+                            <input type="hidden" name="editTask" value="<?= $index ?>">
+                            <input type="text" name="updatedTask" placeholder="Update task" required>
+                            <button type="submit" class="edit">Edit</button>
+                        </form>
                     </div>
                 </li>
             <?php endforeach; ?>
         </ul>
+        <div class="remaining-tasks">
+            Remaining Tasks: <?= $remainingTasks ?>
+        </div>
     </div>
 </body>
 </html>

@@ -5,7 +5,11 @@ $taskList = file_exists($taskFile) ? json_decode(file_get_contents($taskFile), t
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['newTask'])) {
-        $taskList[] = ['description' => $_POST['newTask'], 'isComplete' => false, 'timestamp' => date('Y-m-d H:i:s')];
+        $taskList[] = [
+            'description' => $_POST['newTask'],
+            'isComplete' => false,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
         file_put_contents($taskFile, json_encode($taskList));
     } elseif (isset($_POST['markComplete'])) {
         $taskList[$_POST['markComplete']]['isComplete'] = true;
@@ -19,7 +23,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
+function getFilteredTasks($taskList, $filter) {
+    switch ($filter) {
+        case 'completed':
+            return array_filter($taskList, fn($task) => $task['isComplete']);
+        case 'pending':
+            return array_filter($taskList, fn($task) => !$task['isComplete']);
+        default:
+            return $taskList;
+    }
+}
+
+$filter = $_GET['filter'] ?? 'all';
+$searchQuery = $_GET['search'] ?? '';
+$filteredTasks = getFilteredTasks($taskList, $filter);
 $remainingTasks = count(array_filter($taskList, fn($task) => !$task['isComplete']));
+
+if ($searchQuery) {
+    $filteredTasks = array_filter($filteredTasks, fn($task) => stripos($task['description'], $searchQuery) !== false);
+}
 ?>
 
 <!DOCTYPE html>
@@ -46,7 +68,7 @@ $remainingTasks = count(array_filter($taskList, fn($task) => !$task['isComplete'
             padding: 20px 30px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            width: 400px;
+            width: 500px;
             margin: 20px auto;
         }
         h1 {
@@ -78,6 +100,26 @@ $remainingTasks = count(array_filter($taskList, fn($task) => !$task['isComplete'
         }
         input[type="submit"]:hover {
             background: #218838;
+        }
+        .filter-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .filter-buttons button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .filter-buttons button:hover {
+            background: #0056b3;
+        }
+        .filter-buttons .active {
+            background: #0056b3;
         }
         ul {
             list-style: none;
@@ -142,6 +184,31 @@ $remainingTasks = count(array_filter($taskList, fn($task) => !$task['isComplete'
             font-size: 16px;
             color: #333;
         }
+        .search-bar {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .search-bar input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .search-bar input[type="submit"] {
+            padding: 10px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .search-bar input[type="submit"]:hover {
+            background: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -150,12 +217,23 @@ $remainingTasks = count(array_filter($taskList, fn($task) => !$task['isComplete'
     </div>
     <div class="task-container">
         <h1>Task List</h1>
+        <div class="search-bar">
+            <form method="get">
+                <input type="text" name="search" placeholder="Search tasks..." value="<?= htmlspecialchars($searchQuery) ?>">
+                <input type="submit" value="Search">
+            </form>
+        </div>
+        <div class="filter-buttons">
+            <a href="?filter=all" class="<?= $filter == 'all' ? 'active' : '' ?>"><button>All</button></a>
+            <a href="?filter=pending" class="<?= $filter == 'pending' ? 'active' : '' ?>"><button>Pending</button></a>
+            <a href="?filter=completed" class="<?= $filter == 'completed' ? 'active' : '' ?>"><button>Completed</button></a>
+        </div>
         <form method="post">
             <input type="text" name="newTask" placeholder="New task..." required>
             <input type="submit" value="Add Task">
         </form>
         <ul>
-            <?php foreach ($taskList as $index => $task): ?>
+            <?php foreach ($filteredTasks as $index => $task): ?>
                 <li>
                     <div class="task-desc">
                         <?php if ($task['isComplete']): ?>

@@ -58,10 +58,23 @@ if ($searchQuery) {
         }
         .navbar {
             background-color: #007bff;
-            padding: 10px;
+            padding: 15px;
             color: white;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar .title {
+            font-size: 24px;
+        }
+        .navbar .links a {
+            color: white;
+            margin-left: 20px;
+            text-decoration: none;
             font-size: 18px;
+        }
+        .navbar .links a:hover {
+            text-decoration: underline;
         }
         .task-container {
             background: #fff;
@@ -69,7 +82,7 @@ if ($searchQuery) {
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             width: 500px;
-            margin: 20px auto;
+            margin: 40px auto;
         }
         h1 {
             margin: 0 0 20px;
@@ -82,14 +95,14 @@ if ($searchQuery) {
             margin-bottom: 20px;
         }
         input[type="text"] {
-            width: 75%;
+            width: 70%;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 16px;
         }
         input[type="submit"] {
-            width: 20%;
+            width: 25%;
             padding: 10px;
             background: #28a745;
             color: #fff;
@@ -103,7 +116,7 @@ if ($searchQuery) {
         }
         .filter-buttons {
             display: flex;
-            justify-content: space-around;
+            justify-content: center;
             margin-bottom: 20px;
         }
         .filter-buttons button {
@@ -114,6 +127,7 @@ if ($searchQuery) {
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            margin: 0 5px;
         }
         .filter-buttons button:hover {
             background: #0056b3;
@@ -133,8 +147,9 @@ if ($searchQuery) {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
-        li s {
+        li.s {
             color: #999;
         }
         .task-buttons form {
@@ -209,11 +224,59 @@ if ($searchQuery) {
         .search-bar input[type="submit"]:hover {
             background: #0056b3;
         }
+        .task-desc .priority {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(20px); }
+        }
+        li.added {
+            animation: fadeIn 0.3s forwards;
+        }
+        li.deleted {
+            animation: fadeOut 0.3s forwards;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; 
+            left: 50%; 
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
     <div class="navbar">
-        Task Manager
+        <div class="title">Task Manager</div>
+        <div class="links">
+            <a href="?filter=all" class="<?= $filter == 'all' ? 'active' : '' ?>">All Tasks</a>
+            <a href="?filter=pending" class="<?= $filter == 'pending' ? 'active' : '' ?>">Pending</a>
+            <a href="?filter=completed" class="<?= $filter == 'completed' ? 'active' : '' ?>">Completed</a>
+        </div>
     </div>
     <div class="task-container">
         <h1>Task List</h1>
@@ -232,9 +295,9 @@ if ($searchQuery) {
             <input type="text" name="newTask" placeholder="New task..." required>
             <input type="submit" value="Add Task">
         </form>
-        <ul>
+        <ul id="taskList">
             <?php foreach ($filteredTasks as $index => $task): ?>
-                <li>
+                <li data-index="<?= $index ?>" class="<?= $task['isComplete'] ? 'completed-task' : 'pending-task' ?>">
                     <div class="task-desc">
                         <?php if ($task['isComplete']): ?>
                             <s><?= htmlspecialchars($task['description']) ?></s>
@@ -244,14 +307,14 @@ if ($searchQuery) {
                         <span class="timestamp"><?= htmlspecialchars($task['timestamp']) ?></span>
                     </div>
                     <div class="task-buttons">
-                        <form method="post">
-                            <button type="submit" name="markComplete" value="<?= $index ?>" class="complete">Complete</button>
-                            <button type="submit" name="deleteTask" value="<?= $index ?>" class="delete">Delete</button>
+                        <form method="post" class="mark-complete-form">
+                            <button type="submit" name="markComplete" value="<?= $index ?>" class="complete tooltip">Complete<span class="tooltiptext">Mark as complete</span></button>
+                            <button type="submit" name="deleteTask" value="<?= $index ?>" class="delete tooltip">Delete<span class="tooltiptext">Delete task</span></button>
                         </form>
                         <form method="post" style="display: inline;">
                             <input type="hidden" name="editTask" value="<?= $index ?>">
                             <input type="text" name="updatedTask" placeholder="Update task" required>
-                            <button type="submit" class="edit">Edit</button>
+                            <button type="submit" class="edit tooltip">Edit<span class="tooltiptext">Edit task</span></button>
                         </form>
                     </div>
                 </li>
@@ -261,5 +324,29 @@ if ($searchQuery) {
             Remaining Tasks: <?= $remainingTasks ?>
         </div>
     </div>
+    <script>
+        document.querySelectorAll('.mark-complete-form').forEach(form => {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                let taskItem = this.closest('li');
+                let index = taskItem.getAttribute('data-index');
+                taskItem.classList.add('deleted');
+                fetch('<?= $_SERVER['PHP_SELF'] ?>', {
+                    method: 'POST',
+                    body: new FormData(this)
+                }).then(response => {
+                    if (response.ok) {
+                        taskItem.remove();
+                    }
+                });
+            });
+        });
+
+        document.querySelectorAll('.delete').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                this.closest('li').classList.add('deleted');
+            });
+        });
+    </script>
 </body>
 </html>
